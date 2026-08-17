@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendX — Sign in</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="2" fill="#fff"/><rect x="13" y="3" width="8" height="8" rx="2" fill="#fff" opacity=".7"/><rect x="3" y="13" width="8" height="8" rx="2" fill="#fff" opacity=".7"/><rect x="13" y="13" width="8" height="8" rx="2" fill="#fff" opacity=".45"/></svg>
+      </span>
+      <span>AttendX</span>
+    </div>
+    <div class="login-sub">Sign in to manage attendance</div>
+
+    <div class="login-error" id="loginError">Invalid email or password.</div>
+
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@college.edu" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="padding:11px;">Sign in</button>
+    </form>
+
+    <div class="demo-box">
+      <h4>Demo accounts</h4>
+      <div class="demo-account">
+        <div>
+          <span class="who">Dr. Anjali Verma</span>
+          <span class="em">HOD · anjali.verma@college.edu / hod123</span>
+        </div>
+        <button type="button" data-email="anjali.verma@college.edu" data-pass="hod123">Use</button>
+      </div>
+      <div class="demo-account">
+        <div>
+          <span class="who">Dr. Reema Mathur</span>
+          <span class="em">Teacher · r.mathur@college.edu / teacher123</span>
+        </div>
+        <button type="button" data-email="r.mathur@college.edu" data-pass="teacher123">Use</button>
+      </div>
+      <div class="demo-account">
+        <div>
+          <span class="who">Prof. Sameer Khanna</span>
+          <span class="em">Teacher · s.khanna@college.edu / teacher123</span>
+        </div>
+        <button type="button" data-email="s.khanna@college.edu" data-pass="teacher123">Use</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script>
+  DB.init();
+
+  // If already signed in, skip straight to the right dashboard.
+  (function () {
+    const u = DB.getCurrentUser();
+    if (u) window.location.href = u.role === 'hod' ? 'hod.html' : 'teacher.html';
+  })();
+
+  const form = document.getElementById('loginForm');
+  const errorBox = document.getElementById('loginError');
+  const emailInput = document.getElementById('email');
+  const passInput = document.getElementById('password');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const email = emailInput.value.trim().toLowerCase();
+    const pass = passInput.value;
+    const user = DB.getUsers().find(u => u.email.toLowerCase() === email && u.password === pass);
+    if (!user) {
+      errorBox.classList.add('show');
+      return;
+    }
+    errorBox.classList.remove('show');
+    DB.setCurrentUser(user);
+    window.location.href = user.role === 'hod' ? 'hod.html' : 'teacher.html';
+  });
+
+  document.querySelectorAll('.demo-account button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      emailInput.value = btn.dataset.email;
+      passInput.value = btn.dataset.pass;
+      form.requestSubmit();
+    });
+  });
+</script>
+</body>
+</html>
