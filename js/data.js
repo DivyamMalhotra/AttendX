@@ -2,17 +2,25 @@
 /* Pure localStorage-backed "database" so the whole app works standalone
    without any server. Swap this file out later for real API calls if
    this gets wired up to a backend — every other page only talks to the
-   functions in the `DB` object below, never to localStorage directly. */
+   functions in the `DB` object below, never to localStorage directly.
+
+   Multi-college support: every user/section/subject/student/session now
+   carries a `collegeId`. The login flow is: pick a college (by code) on
+   index.html -> that college's id is stashed in localStorage as the
+   "selected college" -> login.html signs the user in, only matching
+   accounts that belong to that college. */
 
 (function (global) {
   const KEYS = {
+    colleges: 'attendx_colleges',
     users: 'attendx_users',
     sections: 'attendx_sections',
     subjects: 'attendx_subjects',
     students: 'attendx_students',
     sessions: 'attendx_sessions',
     currentUser: 'attendx_current_user',
-    seeded: 'attendx_seeded_v1'
+    selectedCollege: 'attendx_selected_college',
+    seeded: 'attendx_seeded_v2'
   };
 
   const TIME_SLOTS = [
@@ -42,72 +50,135 @@
   }
 
   /* ---------------- seed ---------------- */
+  /* One config block per demo college. Everything below (users, section,
+     subjects, students, sessions) is generated from this list in a loop,
+     so adding a 4th demo college later is just adding one more entry here. */
   function seedIfNeeded() {
     if (read(KEYS.seeded)) return;
 
-    const users = [
-      { id: 'u1', name: 'Dr. Anjali Verma', email: 'anjali.verma@college.edu', password: 'hod123', role: 'hod', title: 'Head of Department' },
-      { id: 'u2', name: 'Dr. Reema Mathur', email: 'r.mathur@college.edu', password: 'teacher123', role: 'teacher', title: 'Faculty' },
-      { id: 'u3', name: 'Prof. Sameer Khanna', email: 's.khanna@college.edu', password: 'teacher123', role: 'teacher', title: 'Faculty' },
-      { id: 'u4', name: 'Dr. Lakshmi Venkat', email: 'l.venkat@college.edu', password: 'teacher123', role: 'teacher', title: 'Faculty' }
+    const collegeSeeds = [
+      {
+        code: 'GEC24',
+        name: 'Government Engineering College',
+        hod: { name: 'Dr. Anjali Verma', email: 'hod@gec.edu' },
+        teachers: [
+          { name: 'Dr. Reema Mathur', email: 'r.mathur@gec.edu' },
+          { name: 'Prof. Sameer Khanna', email: 's.khanna@gec.edu' }
+        ],
+        section: { name: 'CS-B', sem: 'Sem 3' },
+        subjectNames: ['Data Structures', 'Operating Systems'],
+        students: [
+          'Aditya Sharma', 'Priya Nair', 'Rohan Mehta', 'Sneha Kulkarni', 'Arjun Patel'
+        ],
+        rollPrefix: 'GEC21'
+      },
+      {
+        code: 'ABC24',
+        name: 'ABC Institute of Technology',
+        hod: { name: 'Dr. Karan Malhotra', email: 'hod@abcinstitute.edu' },
+        teachers: [
+          { name: 'Prof. Neha Kapoor', email: 'n.kapoor@abcinstitute.edu' },
+          { name: 'Dr. Vikas Choudhary', email: 'v.choudhary@abcinstitute.edu' }
+        ],
+        section: { name: 'IT-A', sem: 'Sem 5' },
+        subjectNames: ['Database Systems', 'Computer Networks'],
+        students: [
+          'Diya Iyer', 'Kabir Singh', 'Meera Joshi', 'Vikram Rao', 'Ananya Desai'
+        ],
+        rollPrefix: 'ABC23'
+      },
+      {
+        code: 'STM24',
+        name: "St. Mary's College of Engineering",
+        hod: { name: 'Dr. Lakshmi Venkat', email: 'hod@stmarys.edu' },
+        teachers: [
+          { name: 'Prof. Farhan Ali', email: 'f.ali@stmarys.edu' },
+          { name: 'Dr. Ritu Bansal', email: 'r.bansal@stmarys.edu' }
+        ],
+        section: { name: 'EC-A', sem: 'Sem 4' },
+        subjectNames: ['Digital Electronics', 'Signals & Systems'],
+        students: [
+          'Ishaan Verma', 'Tanvi Rao', 'Yash Thakur', 'Pooja Menon', 'Rahul Bose'
+        ],
+        rollPrefix: 'STM22'
+      }
     ];
 
-    const sections = [
-      { id: 's1', name: 'CS-B', sem: 'Sem 3' },
-      { id: 's2', name: 'CS-A', sem: 'Sem 3' }
-    ];
+    const colleges = [];
+    const users = [];
+    const sections = [];
+    const subjects = [];
+    const students = [];
+    const sessions = [];
 
-    const subjects = [
-      { id: 'sub1', name: 'Data Structures', sectionId: 's1', teacherId: 'u2' },
-      { id: 'sub2', name: 'Operating Systems', sectionId: 's1', teacherId: 'u3' },
-      { id: 'sub3', name: 'DBMS', sectionId: 's1', teacherId: 'u4' },
-      { id: 'sub4', name: 'Data Structures', sectionId: 's2', teacherId: 'u2' },
-      { id: 'sub5', name: 'Computer Networks', sectionId: 's2', teacherId: 'u3' }
-    ];
-
-    const students = [
-      { id: 'st1', rollNo: 'CS2101', name: 'Aditya Sharma', sectionId: 's1' },
-      { id: 'st2', rollNo: 'CS2102', name: 'Priya Nair', sectionId: 's1' },
-      { id: 'st3', rollNo: 'CS2103', name: 'Rohan Mehta', sectionId: 's1' },
-      { id: 'st4', rollNo: 'CS2104', name: 'Sneha Kulkarni', sectionId: 's1' },
-      { id: 'st5', rollNo: 'CS2105', name: 'Arjun Patel', sectionId: 's1' },
-      { id: 'st6', rollNo: 'CS2106', name: 'Diya Iyer', sectionId: 's2' },
-      { id: 'st7', rollNo: 'CS2107', name: 'Kabir Singh', sectionId: 's2' },
-      { id: 'st8', rollNo: 'CS2108', name: 'Meera Joshi', sectionId: 's2' },
-      { id: 'st9', rollNo: 'CS2109', name: 'Vikram Rao', sectionId: 's2' },
-      { id: 'st10', rollNo: 'CS2110', name: 'Ananya Desai', sectionId: 's2' }
-    ];
-
-    // seed sessions in the current month so "recorded this month" stats work
     const now = new Date();
     const y = now.getFullYear(), m = now.getMonth();
     const pad = n => String(n).padStart(2, '0');
     const dateA = `${y}-${pad(m + 1)}-06`;
     const dateB = `${y}-${pad(m + 1)}-13`;
 
-    const sessions = [
-      {
-        id: 'sess1', subjectId: 'sub1', sectionId: 's1', teacherId: 'u2',
-        date: dateA, slot: TIME_SLOTS[1],
-        attendance: { st1: 'P', st2: 'P', st3: 'P', st4: 'A', st5: 'P' }
-      },
-      {
-        id: 'sess2', subjectId: 'sub1', sectionId: 's1', teacherId: 'u2',
-        date: dateB, slot: TIME_SLOTS[1],
-        attendance: { st1: 'P', st2: 'A', st3: 'A', st4: 'P', st5: 'P' }
-      },
-      {
-        id: 'sess3', subjectId: 'sub4', sectionId: 's2', teacherId: 'u2',
-        date: dateA, slot: TIME_SLOTS[3],
-        attendance: { st6: 'P', st7: 'P', st8: 'P', st9: 'P', st10: 'A' }
-      },
-      {
-        id: 'sess4', subjectId: 'sub4', sectionId: 's2', teacherId: 'u2',
-        date: dateB, slot: TIME_SLOTS[1],
-        attendance: { st6: 'P', st7: 'P', st8: 'P', st9: 'P', st10: 'P' }
-      }
-    ];
+    collegeSeeds.forEach((seed, i) => {
+      const collegeId = 'col' + (i + 1);
+      colleges.push({ id: collegeId, code: seed.code, name: seed.name });
 
+      // ---- HOD ----
+      const hodId = 'u_hod_' + collegeId;
+      users.push({
+        id: hodId, name: seed.hod.name, email: seed.hod.email,
+        password: 'hod123', role: 'hod', title: 'Head of Department', collegeId
+      });
+
+      // ---- Teachers ----
+      const teacherIds = seed.teachers.map((t, ti) => {
+        const tid = 'u_t' + (ti + 1) + '_' + collegeId;
+        users.push({
+          id: tid, name: t.name, email: t.email,
+          password: 'teacher123', role: 'teacher', title: 'Faculty', collegeId
+        });
+        return tid;
+      });
+
+      // ---- Section ----
+      const sectionId = 'sec_' + collegeId;
+      sections.push({ id: sectionId, name: seed.section.name, sem: seed.section.sem, collegeId });
+
+      // ---- Subjects (one per teacher) ----
+      const subjectIds = seed.subjectNames.map((subName, si) => {
+        const subId = 'sub_' + collegeId + '_' + (si + 1);
+        subjects.push({
+          id: subId, name: subName, sectionId,
+          teacherId: teacherIds[si % teacherIds.length], collegeId
+        });
+        return subId;
+      });
+
+      // ---- Students ----
+      const studentIds = seed.students.map((name, sti) => {
+        const stId = 'st_' + collegeId + '_' + (sti + 1);
+        students.push({
+          id: stId, rollNo: seed.rollPrefix + (100 + sti + 1), name, sectionId, collegeId
+        });
+        return stId;
+      });
+
+      // ---- Two sample sessions on the first subject, so stats aren't empty ----
+      const firstSubjectId = subjectIds[0];
+      const attendanceA = {}, attendanceB = {};
+      studentIds.forEach((stId, idx) => {
+        attendanceA[stId] = idx === 3 ? 'A' : 'P'; // one absent in session A
+        attendanceB[stId] = idx === 1 || idx === 2 ? 'A' : 'P'; // two absent in session B
+      });
+      sessions.push({
+        id: 'sess_' + collegeId + '_1', subjectId: firstSubjectId, sectionId,
+        teacherId: teacherIds[0], date: dateA, slot: TIME_SLOTS[1], attendance: attendanceA
+      });
+      sessions.push({
+        id: 'sess_' + collegeId + '_2', subjectId: firstSubjectId, sectionId,
+        teacherId: teacherIds[0], date: dateB, slot: TIME_SLOTS[1], attendance: attendanceB
+      });
+    });
+
+    write(KEYS.colleges, colleges);
     write(KEYS.users, users);
     write(KEYS.sections, sections);
     write(KEYS.subjects, subjects);
@@ -122,17 +193,28 @@
     uid,
     init() { seedIfNeeded(); },
 
+    getColleges() { return read(KEYS.colleges) || []; },
+    college(id) { return this.getColleges().find(c => c.id === id); },
+    collegeByCode(code) {
+      const norm = String(code || '').trim().toUpperCase();
+      return this.getColleges().find(c => c.code.toUpperCase() === norm);
+    },
+
     getUsers() { return read(KEYS.users) || []; },
     saveUsers(v) { write(KEYS.users, v); },
+    usersInCollege(collegeId) { return this.getUsers().filter(u => u.collegeId === collegeId); },
 
     getSections() { return read(KEYS.sections) || []; },
     saveSections(v) { write(KEYS.sections, v); },
+    sectionsInCollege(collegeId) { return this.getSections().filter(s => s.collegeId === collegeId); },
 
     getSubjects() { return read(KEYS.subjects) || []; },
     saveSubjects(v) { write(KEYS.subjects, v); },
+    subjectsInCollege(collegeId) { return this.getSubjects().filter(s => s.collegeId === collegeId); },
 
     getStudents() { return read(KEYS.students) || []; },
     saveStudents(v) { write(KEYS.students, v); },
+    studentsInCollege(collegeId) { return this.getStudents().filter(s => s.collegeId === collegeId); },
 
     getSessions() { return read(KEYS.sessions) || []; },
     saveSessions(v) { write(KEYS.sessions, v); },
@@ -140,6 +222,14 @@
     getCurrentUser() { return read(KEYS.currentUser); },
     setCurrentUser(u) { write(KEYS.currentUser, u); },
     clearCurrentUser() { localStorage.removeItem(KEYS.currentUser); },
+
+    /* ---------------- selected college (step 1 of login) ---------------- */
+    getSelectedCollege() {
+      const id = localStorage.getItem(KEYS.selectedCollege);
+      return id ? this.college(id) : null;
+    },
+    setSelectedCollege(collegeId) { localStorage.setItem(KEYS.selectedCollege, collegeId); },
+    clearSelectedCollege() { localStorage.removeItem(KEYS.selectedCollege); },
 
     /* ---------------- derived helpers ---------------- */
     section(id) { return this.getSections().find(s => s.id === id); },
@@ -163,8 +253,13 @@
         .filter(s => s.subjectId === subjectId)
         .sort((a, b) => (a.date + a.slot) < (b.date + b.slot) ? 1 : -1);
     },
-    allSessionsSorted() {
+    allSessionsSorted(collegeId) {
       return this.getSessions()
+        .filter(s => {
+          if (!collegeId) return true;
+          const sec = this.section(s.sectionId);
+          return sec && sec.collegeId === collegeId;
+        })
         .slice()
         .sort((a, b) => (a.date + a.slot) < (b.date + b.slot) ? 1 : -1);
     },
@@ -187,10 +282,14 @@
       if (total === 0) return null;
       return Math.round((present / total) * 100);
     },
-    sessionsThisMonthCount() {
+    sessionsThisMonthCount(collegeId) {
       const now = new Date();
       const y = now.getFullYear(), m = now.getMonth();
       return this.getSessions().filter(s => {
+        if (collegeId) {
+          const sec = this.section(s.sectionId);
+          if (!sec || sec.collegeId !== collegeId) return false;
+        }
         const d = new Date(s.date + 'T00:00:00');
         return d.getFullYear() === y && d.getMonth() === m;
       }).length;

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendX — Sign in</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="2" fill="#fff"/><rect x="13" y="3" width="8" height="8" rx="2" fill="#fff" opacity=".7"/><rect x="3" y="13" width="8" height="8" rx="2" fill="#fff" opacity=".7"/><rect x="13" y="13" width="8" height="8" rx="2" fill="#fff" opacity=".45"/></svg>
+      </span>
+      <span>AttendX</span>
+    </div>
+    <div class="login-sub" id="collegeSub">Sign in to manage attendance</div>
+
+    <div class="login-error" id="loginError">Invalid email or password.</div>
+
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@college.edu" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="padding:11px;">Sign in</button>
+    </form>
+
+    <div class="demo-box">
+      <h4>Demo accounts for this college</h4>
+      <div id="demoAccountList"></div>
+    </div>
+
+    <div style="text-align:center; margin-top:16px;">
+      <button type="button" id="changeCollegeBtn" class="btn-link">&larr; Not your college? Change it</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script>
+  DB.init();
+
+  // Step 1 (index.html) must have run first — if no college is selected,
+  // send the user back there.
+  const college = DB.getSelectedCollege();
+  if (!college) {
+    window.location.href = 'index.html';
+  }
+
+  // If already signed in, skip straight to the right dashboard.
+  (function () {
+    const u = DB.getCurrentUser();
+    if (u) window.location.href = u.role === 'hod' ? 'hod.html' : 'teacher.html';
+  })();
+
+  document.getElementById('collegeSub').textContent = 'Sign in to ' + (college ? college.name : '');
+
+  const form = document.getElementById('loginForm');
+  const errorBox = document.getElementById('loginError');
+  const emailInput = document.getElementById('email');
+  const passInput = document.getElementById('password');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const email = emailInput.value.trim().toLowerCase();
+    const pass = passInput.value;
+
+    // only match users that belong to the selected college
+    const candidates = DB.usersInCollege(college.id);
+    const user = candidates.find(u => u.email.toLowerCase() === email && u.password === pass);
+
+    if (!user) {
+      errorBox.classList.add('show');
+      return;
+    }
+    errorBox.classList.remove('show');
+    DB.setCurrentUser(user);
+    window.location.href = user.role === 'hod' ? 'hod.html' : 'teacher.html';
+  });
+
+  document.getElementById('changeCollegeBtn').addEventListener('click', () => {
+    DB.clearSelectedCollege();
+    window.location.href = 'index.html';
+  });
+
+  // Build the demo-account list from whichever college was selected,
+  // instead of hardcoding it — so it stays correct for every college.
+  const demoListEl = document.getElementById('demoAccountList');
+  const hod = DB.usersInCollege(college.id).find(u => u.role === 'hod');
+  const teachers = DB.usersInCollege(college.id).filter(u => u.role === 'teacher');
+  const demoUsers = hod ? [hod, ...teachers] : teachers;
+
+  demoListEl.innerHTML = demoUsers.map(u => `
+    <div class="demo-account">
+      <div>
+        <span class="who">${u.name}</span>
+        <span class="em">${u.role === 'hod' ? 'HOD' : 'Teacher'} · ${u.email} / ${u.password}</span>
+      </div>
+      <button type="button" data-email="${u.email}" data-pass="${u.password}">Use</button>
+    </div>
+  `).join('');
+
+  demoListEl.querySelectorAll('button[data-email]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      emailInput.value = btn.dataset.email;
+      passInput.value = btn.dataset.pass;
+      form.requestSubmit();
+    });
+  });
+</script>
+</body>
+</html>

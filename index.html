@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AttendX — Sign in</title>
+<title>AttendX — Find your college</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,45 +16,21 @@
       </span>
       <span>AttendX</span>
     </div>
-    <div class="login-sub">Sign in to manage attendance</div>
+    <div class="login-sub">Enter your college code to continue</div>
 
-    <div class="login-error" id="loginError">Invalid email or password.</div>
+    <div class="login-error" id="collegeError">College code not recognized.</div>
 
-    <form id="loginForm" novalidate>
+    <form id="collegeForm" novalidate>
       <div class="field">
-        <label for="email">Email</label>
-        <input type="email" id="email" placeholder="you@college.edu" required autocomplete="username">
+        <label for="collegeCode">College code</label>
+        <input type="text" id="collegeCode" placeholder="e.g. GEC24" required autocomplete="off" style="text-transform:uppercase;">
       </div>
-      <div class="field">
-        <label for="password">Password</label>
-        <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
-      </div>
-      <button type="submit" class="btn btn-primary btn-block" style="padding:11px;">Sign in</button>
+      <button type="submit" class="btn btn-primary btn-block" style="padding:11px;">Continue</button>
     </form>
 
     <div class="demo-box">
-      <h4>Demo accounts</h4>
-      <div class="demo-account">
-        <div>
-          <span class="who">Dr. Anjali Verma</span>
-          <span class="em">HOD · anjali.verma@college.edu / hod123</span>
-        </div>
-        <button type="button" data-email="anjali.verma@college.edu" data-pass="hod123">Use</button>
-      </div>
-      <div class="demo-account">
-        <div>
-          <span class="who">Dr. Reema Mathur</span>
-          <span class="em">Teacher · r.mathur@college.edu / teacher123</span>
-        </div>
-        <button type="button" data-email="r.mathur@college.edu" data-pass="teacher123">Use</button>
-      </div>
-      <div class="demo-account">
-        <div>
-          <span class="who">Prof. Sameer Khanna</span>
-          <span class="em">Teacher · s.khanna@college.edu / teacher123</span>
-        </div>
-        <button type="button" data-email="s.khanna@college.edu" data-pass="teacher123">Use</button>
-      </div>
+      <h4>Demo colleges</h4>
+      <div id="collegeList"></div>
     </div>
   </div>
 </div>
@@ -63,37 +39,47 @@
 <script>
   DB.init();
 
-  // If already signed in, skip straight to the right dashboard.
+  // If a user is already signed in, skip straight to their dashboard.
   (function () {
     const u = DB.getCurrentUser();
     if (u) window.location.href = u.role === 'hod' ? 'hod.html' : 'teacher.html';
   })();
 
-  const form = document.getElementById('loginForm');
-  const errorBox = document.getElementById('loginError');
-  const emailInput = document.getElementById('email');
-  const passInput = document.getElementById('password');
+  const form = document.getElementById('collegeForm');
+  const errorBox = document.getElementById('collegeError');
+  const codeInput = document.getElementById('collegeCode');
+  const listEl = document.getElementById('collegeList');
+
+  function goToLogin(collegeId) {
+    DB.setSelectedCollege(collegeId);
+    window.location.href = 'login.html';
+  }
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    const email = emailInput.value.trim().toLowerCase();
-    const pass = passInput.value;
-    const user = DB.getUsers().find(u => u.email.toLowerCase() === email && u.password === pass);
-    if (!user) {
+    const college = DB.collegeByCode(codeInput.value);
+    if (!college) {
       errorBox.classList.add('show');
       return;
     }
     errorBox.classList.remove('show');
-    DB.setCurrentUser(user);
-    window.location.href = user.role === 'hod' ? 'hod.html' : 'teacher.html';
+    goToLogin(college.id);
   });
 
-  document.querySelectorAll('.demo-account button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      emailInput.value = btn.dataset.email;
-      passInput.value = btn.dataset.pass;
-      form.requestSubmit();
-    });
+  // Render the list of demo colleges as quick "Use" buttons, same pattern
+  // as the demo-account buttons on the login page.
+  listEl.innerHTML = DB.getColleges().map(c => `
+    <div class="demo-account">
+      <div>
+        <span class="who">${c.name}</span>
+        <span class="em">Code: ${c.code}</span>
+      </div>
+      <button type="button" data-college="${c.id}">Use</button>
+    </div>
+  `).join('');
+
+  listEl.querySelectorAll('button[data-college]').forEach(btn => {
+    btn.addEventListener('click', () => goToLogin(btn.dataset.college));
   });
 </script>
 </body>

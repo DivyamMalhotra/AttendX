@@ -53,11 +53,11 @@
 
   /* ================= OVERVIEW ================= */
   function renderOverview() {
-    const sections = DB.getSections();
-    const students = DB.getStudents();
-    const teachers = DB.getUsers().filter(u => u.role === 'teacher');
-    const sessionsThisMonth = DB.sessionsThisMonthCount();
-    const recent = DB.allSessionsSorted().slice(0, 4);
+    const sections = DB.sectionsInCollege(user.collegeId);
+    const students = DB.studentsInCollege(user.collegeId);
+    const teachers = DB.usersInCollege(user.collegeId).filter(u => u.role === 'teacher');
+    const sessionsThisMonth = DB.sessionsThisMonthCount(user.collegeId);
+    const recent = DB.allSessionsSorted(user.collegeId).slice(0, 4);
 
     main.innerHTML = `
       <div class="page-header">
@@ -127,7 +127,7 @@
 
   /* ================= SECTIONS ================= */
   function renderSections() {
-    const sections = DB.getSections();
+    const sections = DB.sectionsInCollege(user.collegeId);
 
     main.innerHTML = `
       <div class="page-header-row">
@@ -152,7 +152,7 @@
 
     function paintSections() {
       const list = document.getElementById('sectionList');
-      const sects = DB.getSections();
+      const sects = DB.sectionsInCollege(user.collegeId);
       let html = '';
       if (ui.creatingSection) html += sectionCreateRow();
       html += sects.map(sec => sectionRow(sec)).join('');
@@ -224,7 +224,7 @@
     }
 
     function subjectPanel(sec, subjects) {
-      const teachers = DB.getUsers().filter(u => u.role === 'teacher');
+      const teachers = DB.usersInCollege(user.collegeId).filter(u => u.role === 'teacher');
       return `
         <div class="subject-panel">
           ${subjects.length ? subjects.map(sub => {
@@ -258,7 +258,7 @@
         const sem = document.getElementById('newSecSem').value.trim();
         if (!name || !sem) { showToast('Please fill in both fields.'); return; }
         const sections = DB.getSections();
-        sections.push({ id: DB.uid('s'), name, sem });
+        sections.push({ id: DB.uid('s'), name, sem, collegeId: user.collegeId });
         DB.saveSections(sections);
         ui.creatingSection = false;
         showToast('Section created.');
@@ -317,7 +317,7 @@
         const name = nameInput.value.trim();
         if (!name) { showToast('Enter a subject name.'); return; }
         const subjects = DB.getSubjects();
-        subjects.push({ id: DB.uid('sub'), name, sectionId: secId, teacherId: teacherSel.value || null });
+        subjects.push({ id: DB.uid('sub'), name, sectionId: secId, teacherId: teacherSel.value || null, collegeId: user.collegeId });
         DB.saveSubjects(subjects);
         showToast('Subject added.');
         paintSections();
@@ -326,14 +326,14 @@
 
     function refreshHeaderCount() {
       const sub = main.querySelector('.page-header-row .sub');
-      const n = DB.getSections().length;
+      const n = DB.sectionsInCollege(user.collegeId).length;
       if (sub) sub.textContent = `${n} section${n === 1 ? '' : 's'} · HOD only`;
     }
   }
 
   /* ================= TEACHERS ================= */
   function renderTeachers() {
-    const teachers = DB.getUsers().filter(u => u.role === 'teacher');
+    const teachers = DB.usersInCollege(user.collegeId).filter(u => u.role === 'teacher');
 
     main.innerHTML = `
       <div class="page-header-row">
@@ -359,7 +359,7 @@
 
     function paintTeacherTable() {
       const tbody = document.getElementById('teacherTbody');
-      const teachers = DB.getUsers().filter(u => u.role === 'teacher');
+      const teachers = DB.usersInCollege(user.collegeId).filter(u => u.role === 'teacher');
       document.getElementById('teacherCountSub').textContent = `${teachers.length} faculty member${teachers.length === 1 ? '' : 's'}`;
 
       if (!teachers.length) {
@@ -420,11 +420,11 @@
           const email = document.getElementById('tEmail').value.trim();
           const pass = document.getElementById('tPass').value.trim() || 'teacher123';
           if (!name || !email) { showToast('Please fill in name and email.'); return false; }
-          if (DB.getUsers().some(u => u.email.toLowerCase() === email.toLowerCase())) {
+          if (DB.usersInCollege(user.collegeId).some(u => u.email.toLowerCase() === email.toLowerCase())) {
             showToast('A user with that email already exists.'); return false;
           }
           const users = DB.getUsers();
-          users.push({ id: DB.uid('u'), name, email, password: pass, role: 'teacher', title: 'Faculty' });
+          users.push({ id: DB.uid('u'), name, email, password: pass, role: 'teacher', title: 'Faculty', collegeId: user.collegeId });
           DB.saveUsers(users);
           showToast('Teacher added.');
           paintTeacherTable();
@@ -434,7 +434,7 @@
     }
 
     function openAssignModal(teacherId, onDone) {
-      const sections = DB.getSections();
+      const sections = DB.sectionsInCollege(user.collegeId);
       openModal({
         title: 'Assign Subject',
         bodyHtml: `
@@ -450,7 +450,7 @@
           const name = document.getElementById('aSubject').value.trim();
           if (!sectionId || !name) { showToast('Please fill in all fields.'); return false; }
           const subjects = DB.getSubjects();
-          subjects.push({ id: DB.uid('sub'), name, sectionId, teacherId });
+          subjects.push({ id: DB.uid('sub'), name, sectionId, teacherId, collegeId: user.collegeId });
           DB.saveSubjects(subjects);
           showToast('Subject assigned.');
           onDone();
@@ -462,7 +462,7 @@
 
   /* ================= STUDENTS ================= */
   function renderStudents() {
-    const students = DB.getStudents();
+    const students = DB.studentsInCollege(user.collegeId);
 
     main.innerHTML = `
       <div class="page-header-row">
@@ -488,7 +488,7 @@
 
     function paintStudents() {
       const tbody = document.getElementById('studentTbody');
-      const students = DB.getStudents();
+      const students = DB.studentsInCollege(user.collegeId);
       document.getElementById('studentCountSub').textContent = `${students.length} enrolled`;
 
       if (!students.length) {
@@ -538,7 +538,7 @@
     }
 
     function openStudentModal(existing) {
-      const sections = DB.getSections();
+      const sections = DB.sectionsInCollege(user.collegeId);
       openModal({
         title: existing ? 'Edit Student' : 'Add Student',
         bodyHtml: `
@@ -562,7 +562,7 @@
             const st = students.find(s => s.id === existing.id);
             st.rollNo = rollNo; st.name = name; st.sectionId = sectionId;
           } else {
-            students.push({ id: DB.uid('st'), rollNo, name, sectionId });
+            students.push({ id: DB.uid('st'), rollNo, name, sectionId, collegeId: user.collegeId });
           }
           DB.saveStudents(students);
           showToast(existing ? 'Student updated.' : 'Student added.');
