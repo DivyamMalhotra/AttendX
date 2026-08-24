@@ -36,13 +36,14 @@
 </div>
 
 <script src="js/data.js"></script>
+<script src="js/auth.js"></script>
 <script>
   DB.init();
 
   // If a user is already signed in, skip straight to their dashboard.
   (function () {
     const u = DB.getCurrentUser();
-    if (u) window.location.href = u.role === 'hod' ? 'hod.html' : 'teacher.html';
+    if (u) window.location.href = Auth.dashboardFor(u);
   })();
 
   const form = document.getElementById('collegeForm');

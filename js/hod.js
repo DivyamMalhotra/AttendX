@@ -182,6 +182,7 @@
       const isEditing = ui.editingSectionId === sec.id;
       const isExpanded = ui.expandedSectionId === sec.id;
       const canDelete = studentCount === 0;
+      const mentor = DB.mentorOfSection(sec.id);
 
       if (isEditing) {
         return `
@@ -207,7 +208,7 @@
               </div>
               <div>
                 <div style="font-weight:700;">${esc(sec.name)} · ${esc(sec.sem)}</div>
-                <div class="muted" style="font-size:13.5px; margin-top:2px;">${studentCount} students · ${subjects.length} subjects</div>
+                <div class="muted" style="font-size:13.5px; margin-top:2px;">${studentCount} students · ${subjects.length} subjects · Mentor: ${mentor ? esc(mentor.name) : 'Not set'}</div>
               </div>
             </div>
             <div class="flex-center gap-8">
@@ -227,6 +228,14 @@
       const teachers = DB.usersInCollege(user.collegeId).filter(u => u.role === 'teacher');
       return `
         <div class="subject-panel">
+          <div class="mentor-row" style="display:flex; align-items:center; gap:10px; padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid var(--border);">
+            <span class="faint" style="font-size:13px; font-weight:600;">Mentor (approves this section's leave requests):</span>
+            <select id="mentorSelect_${sec.id}" style="max-width:220px;">
+              <option value="">Not set</option>
+              ${teachers.map(t => `<option value="${t.id}" ${sec.mentorId === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
+            </select>
+            <button class="btn-link" data-save-mentor="${sec.id}">Save</button>
+          </div>
           ${subjects.length ? subjects.map(sub => {
             const t = DB.teacher(sub.teacherId);
             return `
@@ -258,7 +267,7 @@
         const sem = document.getElementById('newSecSem').value.trim();
         if (!name || !sem) { showToast('Please fill in both fields.'); return; }
         const sections = DB.getSections();
-        sections.push({ id: DB.uid('s'), name, sem, collegeId: user.collegeId });
+        sections.push({ id: DB.uid('s'), name, sem, collegeId: user.collegeId, mentorId: null });
         DB.saveSections(sections);
         ui.creatingSection = false;
         showToast('Section created.');
@@ -301,6 +310,16 @@
       list.querySelectorAll('[data-toggle-sec]').forEach(b => b.addEventListener('click', () => {
         const id = b.dataset.toggleSec;
         ui.expandedSectionId = ui.expandedSectionId === id ? null : id;
+        paintSections();
+      }));
+      list.querySelectorAll('[data-save-mentor]').forEach(b => b.addEventListener('click', () => {
+        const id = b.dataset.saveMentor;
+        const mentorId = document.getElementById(`mentorSelect_${id}`).value || null;
+        const sections = DB.getSections();
+        const sec = sections.find(s => s.id === id);
+        sec.mentorId = mentorId;
+        DB.saveSections(sections);
+        showToast('Mentor updated.');
         paintSections();
       }));
       list.querySelectorAll('[data-remove-subject]').forEach(b => b.addEventListener('click', () => {

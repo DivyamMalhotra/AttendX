@@ -44,6 +44,7 @@
 </div>
 
 <script src="js/data.js"></script>
+<script src="js/auth.js"></script>
 <script>
   DB.init();
 
@@ -57,7 +58,7 @@
   // If already signed in, skip straight to the right dashboard.
   (function () {
     const u = DB.getCurrentUser();
-    if (u) window.location.href = u.role === 'hod' ? 'hod.html' : 'teacher.html';
+    if (u) window.location.href = Auth.dashboardFor(u);
   })();
 
   document.getElementById('collegeSub').textContent = 'Sign in to ' + (college ? college.name : '');
@@ -67,14 +68,30 @@
   const emailInput = document.getElementById('email');
   const passInput = document.getElementById('password');
 
+  // Looks for a matching HOD/teacher first, then a matching student —
+  // both are scoped to the selected college so cross-college logins fail.
+  function findMatchingUser(email, pass) {
+    const staff = DB.usersInCollege(college.id).find(u => u.email.toLowerCase() === email && u.password === pass);
+    if (staff) return staff;
+
+    const student = DB.studentsInCollege(college.id).find(s => (s.email || '').toLowerCase() === email && s.password === pass);
+    if (!student) return null;
+
+    // students aren't stored in the `users` list, so build the same shape
+    // of "current user" object on the fly when one logs in successfully
+    return {
+      id: student.id, name: student.name, email: student.email,
+      role: 'student', title: 'Student',
+      collegeId: student.collegeId, sectionId: student.sectionId, rollNo: student.rollNo
+    };
+  }
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     const email = emailInput.value.trim().toLowerCase();
     const pass = passInput.value;
 
-    // only match users that belong to the selected college
-    const candidates = DB.usersInCollege(college.id);
-    const user = candidates.find(u => u.email.toLowerCase() === email && u.password === pass);
+    const user = findMatchingUser(email, pass);
 
     if (!user) {
       errorBox.classList.add('show');
@@ -82,7 +99,7 @@
     }
     errorBox.classList.remove('show');
     DB.setCurrentUser(user);
-    window.location.href = user.role === 'hod' ? 'hod.html' : 'teacher.html';
+    window.location.href = Auth.dashboardFor(user);
   });
 
   document.getElementById('changeCollegeBtn').addEventListener('click', () => {
@@ -92,18 +109,24 @@
 
   // Build the demo-account list from whichever college was selected,
   // instead of hardcoding it — so it stays correct for every college.
+  // Includes one demo student too.
   const demoListEl = document.getElementById('demoAccountList');
   const hod = DB.usersInCollege(college.id).find(u => u.role === 'hod');
   const teachers = DB.usersInCollege(college.id).filter(u => u.role === 'teacher');
-  const demoUsers = hod ? [hod, ...teachers] : teachers;
+  const demoStudent = DB.studentsInCollege(college.id)[0];
 
-  demoListEl.innerHTML = demoUsers.map(u => `
+  const demoRows = [];
+  if (hod) demoRows.push({ name: hod.name, tag: 'HOD', email: hod.email, pass: hod.password });
+  teachers.forEach(t => demoRows.push({ name: t.name, tag: 'Teacher', email: t.email, pass: t.password }));
+  if (demoStudent) demoRows.push({ name: demoStudent.name, tag: 'Student', email: demoStudent.email, pass: demoStudent.password });
+
+  demoListEl.innerHTML = demoRows.map(u => `
     <div class="demo-account">
       <div>
         <span class="who">${u.name}</span>
-        <span class="em">${u.role === 'hod' ? 'HOD' : 'Teacher'} · ${u.email} / ${u.password}</span>
+        <span class="em">${u.tag} · ${u.email} / ${u.pass}</span>
       </div>
-      <button type="button" data-email="${u.email}" data-pass="${u.password}">Use</button>
+      <button type="button" data-email="${u.email}" data-pass="${u.pass}">Use</button>
     </div>
   `).join('');
 

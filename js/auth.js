@@ -1,28 +1,39 @@
 /* ===================== AttendX auth helpers ===================== */
 (function (global) {
+  // single place that maps a role to its dashboard page — every other
+  // file (index.html, login.html, auth.js) calls this instead of
+  // repeating the same if/else chain
+  function dashboardFor(user) {
+    if (user.role === 'hod') return 'hod.html';
+    if (user.role === 'teacher') return 'teacher.html';
+    return 'student.html';
+  }
+
   function requireRole(role) {
     DB.init();
     const user = DB.getCurrentUser();
     if (!user) {
-      window.location.href = 'index.html';
+      // login.html already redirects to index.html itself if no college
+      // has been picked yet, so this is safe even on a first-ever visit
+      window.location.href = 'login.html';
       return null;
     }
     if (user.role !== role) {
-      window.location.href = user.role === 'hod' ? 'hod.html' : 'teacher.html';
+      window.location.href = dashboardFor(user);
       return null;
     }
     return user;
   }
 
   function wireSignOut(user) {
-    // sign out should also forget which college was selected, so the
-    // next visitor lands back on the college-code screen
+    // sign out should land back on THIS college's login screen, not force
+    // the person to re-type the college code. Changing college is still
+    // possible manually via the "Change college" link on login.html.
     const btn = document.getElementById('signOutBtn');
     if (btn) {
       btn.addEventListener('click', () => {
         DB.clearCurrentUser();
-        DB.clearSelectedCollege();
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
       });
     }
 
@@ -44,5 +55,5 @@
     }
   }
 
-  global.Auth = { requireRole, wireSignOut };
+  global.Auth = { requireRole, wireSignOut, dashboardFor };
 })(window);

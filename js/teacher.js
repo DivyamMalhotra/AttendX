@@ -32,12 +32,14 @@
   function render() {
     const parts = (location.hash || '#classes').replace('#', '').split('/');
     const route = parts[0];
-    // single "My Classes" nav item stays highlighted for both the list and the
-    // attendance-marking screen, since marking attendance is part of that flow
-    document.querySelectorAll('.nav-link').forEach(a => a.classList.toggle('active', a.dataset.route === 'classes'));
+    // the session-marking screen belongs to the "My Classes" flow, so keep
+    // that nav item highlighted while on it; "leaves" gets its own item
+    const activeRoute = route === 'session' ? 'classes' : route;
+    document.querySelectorAll('.nav-link').forEach(a => a.classList.toggle('active', a.dataset.route === activeRoute));
 
     if (route === 'session' && parts[1] === 'new') renderSession({ mode: 'new', subjectId: parts[2] });
     else if (route === 'session' && parts[1] === 'edit') renderSession({ mode: 'edit', sessionId: parts[2] });
+    else if (route === 'leaves') renderLeaves();
     else renderClasses();
   }
 
@@ -318,6 +320,85 @@
         <h2>Attendance submitted</h2>
         <p>${present} present, ${absent} absent</p>
         <a href="#classes" class="btn-link" style="font-size:14.5px;">Back to Home</a>
+      </div>
+    `;
+  }
+
+  /* ================= LEAVE REQUESTS (mentor only) ================= */
+  function renderLeaves() {
+    // a teacher is only a mentor if some section's mentorId points at them
+    const mentoredSections = DB.getSections().filter(s => s.mentorId === user.id);
+
+    main.innerHTML = `
+      <div class="page-header">
+        <h1>Leave Requests</h1>
+        <div class="sub">${mentoredSections.length
+          ? 'Requests from students in the section(s) you mentor'
+          : 'You are not set as a mentor for any section yet'}</div>
+      </div>
+      <div id="leaveList"></div>
+    `;
+
+    if (!mentoredSections.length) {
+      document.getElementById('leaveList').innerHTML = `
+        <div class="card empty-state">Ask your HOD to set you as the mentor for a section — mentors are the ones who approve or decline their students' leave requests.</div>
+      `;
+      return;
+    }
+
+    paintLeaveList();
+
+    function paintLeaveList() {
+      const listEl = document.getElementById('leaveList');
+      const requests = DB.leaveRequestsForMentor(user.id);
+
+      if (!requests.length) {
+        listEl.innerHTML = `<div class="card empty-state">No leave requests yet.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = requests.map(r => leaveRow(r)).join('');
+
+      listEl.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', () => {
+        respondToLeave(b.dataset.approve, 'approved');
+      }));
+      listEl.querySelectorAll('[data-decline]').forEach(b => b.addEventListener('click', () => {
+        respondToLeave(b.dataset.decline, 'declined');
+      }));
+    }
+
+    function respondToLeave(requestId, status) {
+      const requests = DB.getLeaveRequests();
+      const req = requests.find(r => r.id === requestId);
+      if (!req) return;
+      req.status = status;
+      req.respondedAt = Date.now();
+      DB.saveLeaveRequests(requests);
+      showToast('Leave request ' + status + '.');
+      paintLeaveList();
+    }
+  }
+
+  function leaveRow(req) {
+    const student = DB.student(req.studentId);
+    const statusBadge = req.status === 'approved' ? 'badge-green'
+      : req.status === 'declined' ? 'badge-red' : 'badge-gray';
+
+    return `
+      <div class="card" style="padding:16px 22px; margin-bottom:12px;">
+        <div class="flex-between">
+          <div>
+            <div style="font-weight:700;">${esc(student ? student.name : 'Unknown student')}</div>
+            <div class="muted" style="font-size:13.5px; margin-top:2px;">${esc(student ? student.rollNo : '')} · ${esc(req.fromDate)} to ${esc(req.toDate)}</div>
+          </div>
+          <span class="badge ${statusBadge}">${req.status}</span>
+        </div>
+        <div style="margin-top:10px; font-size:13.5px;">${esc(req.reason)}</div>
+        ${req.status === 'pending' ? `
+          <div class="flex-center gap-10" style="margin-top:14px;">
+            <button class="btn btn-success-soft btn-sm" data-approve="${req.id}">Approve</button>
+            <button class="btn btn-danger-soft btn-sm" data-decline="${req.id}">Decline</button>
+          </div>` : ''}
       </div>
     `;
   }

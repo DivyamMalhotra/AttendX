@@ -1,14 +1,4 @@
-/* ===================== AttendX data layer ===================== */
-/* Pure localStorage-backed "database" so the whole app works standalone
-   without any server. Swap this file out later for real API calls if
-   this gets wired up to a backend — every other page only talks to the
-   functions in the `DB` object below, never to localStorage directly.
 
-   Multi-college support: every user/section/subject/student/session now
-   carries a `collegeId`. The login flow is: pick a college (by code) on
-   index.html -> that college's id is stashed in localStorage as the
-   "selected college" -> login.html signs the user in, only matching
-   accounts that belong to that college. */
 
 (function (global) {
   const KEYS = {
@@ -18,9 +8,10 @@
     subjects: 'attendx_subjects',
     students: 'attendx_students',
     sessions: 'attendx_sessions',
+    leaveRequests: 'attendx_leave_requests',
     currentUser: 'attendx_current_user',
     selectedCollege: 'attendx_selected_college',
-    seeded: 'attendx_seeded_v2'
+    seeded: 'attendx_seeded_v3'
   };
 
   const TIME_SLOTS = [
@@ -138,9 +129,12 @@
         return tid;
       });
 
-      // ---- Section ----
+      // ---- Section (first teacher doubles as the mentor by default) ----
       const sectionId = 'sec_' + collegeId;
-      sections.push({ id: sectionId, name: seed.section.name, sem: seed.section.sem, collegeId });
+      sections.push({
+        id: sectionId, name: seed.section.name, sem: seed.section.sem,
+        collegeId, mentorId: teacherIds[0]
+      });
 
       // ---- Subjects (one per teacher) ----
       const subjectIds = seed.subjectNames.map((subName, si) => {
@@ -152,11 +146,15 @@
         return subId;
       });
 
-      // ---- Students ----
+      // ---- Students (each gets a login email + password too) ----
+      const collegeDomain = seed.hod.email.split('@')[1];
       const studentIds = seed.students.map((name, sti) => {
         const stId = 'st_' + collegeId + '_' + (sti + 1);
+        const emailSlug = name.toLowerCase().replace(/[^a-z]+/g, '.');
         students.push({
-          id: stId, rollNo: seed.rollPrefix + (100 + sti + 1), name, sectionId, collegeId
+          id: stId, rollNo: seed.rollPrefix + (100 + sti + 1), name, sectionId, collegeId,
+          email: emailSlug + '@student.' + collegeDomain,
+          password: 'student123'
         });
         return stId;
       });
@@ -184,6 +182,7 @@
     write(KEYS.subjects, subjects);
     write(KEYS.students, students);
     write(KEYS.sessions, sessions);
+    write(KEYS.leaveRequests, []);
     write(KEYS.seeded, true);
   }
 
@@ -216,6 +215,19 @@
     saveStudents(v) { write(KEYS.students, v); },
     studentsInCollege(collegeId) { return this.getStudents().filter(s => s.collegeId === collegeId); },
 
+    getLeaveRequests() { return read(KEYS.leaveRequests) || []; },
+    saveLeaveRequests(v) { write(KEYS.leaveRequests, v); },
+    leaveRequestsForStudent(studentId) {
+      return this.getLeaveRequests()
+        .filter(r => r.studentId === studentId)
+        .sort((a, b) => b.requestedAt - a.requestedAt);
+    },
+    leaveRequestsForMentor(teacherId) {
+      return this.getLeaveRequests()
+        .filter(r => r.mentorId === teacherId)
+        .sort((a, b) => b.requestedAt - a.requestedAt);
+    },
+
     getSessions() { return read(KEYS.sessions) || []; },
     saveSessions(v) { write(KEYS.sessions, v); },
 
@@ -238,6 +250,32 @@
     student(id) { return this.getStudents().find(s => s.id === id); },
 
     sectionLabel(section) { return section ? `${section.name} · ${section.sem}` : ''; },
+
+    mentorOfSection(sectionId) {
+      const sec = this.section(sectionId);
+      if (!sec || !sec.mentorId) return null;
+      return this.teacher(sec.mentorId);
+    },
+
+    /* per-subject attendance breakdown for one student, used on their dashboard */
+    studentAttendanceBySubject(studentId, sectionId) {
+      const subjects = this.subjectsInSection(sectionId);
+      return subjects.map(sub => {
+        const sessions = this.sessionsForSubject(sub.id);
+        let present = 0, total = 0;
+        sessions.forEach(s => {
+          if (Object.prototype.hasOwnProperty.call(s.attendance, studentId)) {
+            total++;
+            if (s.attendance[studentId] === 'P') present++;
+          }
+        });
+        const teacher = this.teacher(sub.teacherId);
+        return {
+          subject: sub, teacher, present, total,
+          pct: total === 0 ? null : Math.round((present / total) * 100)
+        };
+      });
+    },
 
     studentsInSection(sectionId) {
       return this.getStudents().filter(s => s.sectionId === sectionId);
