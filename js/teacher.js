@@ -374,7 +374,15 @@
       req.status = status;
       req.respondedAt = Date.now();
       DB.saveLeaveRequests(requests);
-      showToast('Leave request ' + status + '.');
+
+      if (status === 'approved') {
+        const changedCount = DB.applyLeaveToAttendance(req);
+        showToast(changedCount > 0
+          ? `Leave approved — ${changedCount} absent record${changedCount === 1 ? '' : 's'} updated to present.`
+          : 'Leave approved.');
+      } else {
+        showToast('Leave request declined.');
+      }
       paintLeaveList();
     }
   }

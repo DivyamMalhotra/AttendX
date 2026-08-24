@@ -257,6 +257,30 @@
       return this.teacher(sec.mentorId);
     },
 
+    /* called when a mentor approves a leave request — any session in that
+       student's section, dated within [fromDate, toDate], where this
+       student was marked Absent gets flipped to Present. Dates are plain
+       'YYYY-MM-DD' strings so normal string comparison (>=, <=) works. */
+    applyLeaveToAttendance(leaveRequest) {
+      const sessions = this.getSessions();
+      let changedCount = 0;
+
+      sessions.forEach(s => {
+        const inRange = s.sectionId === leaveRequest.sectionId &&
+          s.date >= leaveRequest.fromDate && s.date <= leaveRequest.toDate;
+        if (!inRange) return;
+
+        const wasAbsent = s.attendance && s.attendance[leaveRequest.studentId] === 'A';
+        if (wasAbsent) {
+          s.attendance[leaveRequest.studentId] = 'P';
+          changedCount++;
+        }
+      });
+
+      if (changedCount > 0) this.saveSessions(sessions);
+      return changedCount;
+    },
+
     /* per-subject attendance breakdown for one student, used on their dashboard */
     studentAttendanceBySubject(studentId, sectionId) {
       const subjects = this.subjectsInSection(sectionId);
