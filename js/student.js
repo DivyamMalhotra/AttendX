@@ -36,11 +36,16 @@
   function renderAttendance() {
     const section = DB.section(user.sectionId);
     const breakdown = DB.studentAttendanceBySubject(user.id, user.sectionId);
+    const approvedLeaves = DB.leaveRequestsForStudent(user.id).filter(r => r.status === 'approved').length;
 
     // roll every subject's present/total together for one overall percentage
     let overallPresent = 0, overallTotal = 0;
     breakdown.forEach(row => { overallPresent += row.present; overallTotal += row.total; });
     const overallPct = overallTotal === 0 ? null : Math.round((overallPresent / overallTotal) * 100);
+    const requiredPct = 75;
+    const maxBunkable = overallTotal === 0
+      ? 0
+      : Math.max(0, Math.floor((overallPresent * 100) / requiredPct - overallTotal));
 
     main.innerHTML = `
       <div class="page-header">
@@ -55,6 +60,23 @@
             ${overallPct === null ? '—' : overallPct + '%'}
           </div>
           <div class="stat-hint">${overallTotal} session${overallTotal === 1 ? '' : 's'} recorded</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Classes Summary</div>
+          <div class="stat-value" style="font-size:19px;">${overallPresent}/${overallTotal}</div>
+          <div class="stat-hint">Attended / Total classes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Can Bunk (75% rule)</div>
+          <div class="stat-value" style="color:${overallPct !== null && overallPct < requiredPct ? 'var(--red)' : 'inherit'};">
+            ${maxBunkable}
+          </div>
+          <div class="stat-hint">${overallPct !== null && overallPct < requiredPct ? 'Below 75%: no bunk allowed' : 'Without dropping below 75%'}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Leaves Approved</div>
+          <div class="stat-value" style="font-size:29px;">${approvedLeaves}</div>
+          <div class="stat-hint">Approved leave requests</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Section</div>
