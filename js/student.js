@@ -206,6 +206,17 @@
           if (!fromDate || !toDate || !reason) { showToast('Please fill in all fields.'); return false; }
           if (toDate < fromDate) { showToast('"To" date cannot be before "From" date.'); return false; }
 
+          // block a duplicate/overlapping request — only "pending" and
+          // "approved" requests count as active; declined/cancelled ones
+          // don't block a fresh request for the same dates
+          const activeRequests = DB.leaveRequestsForStudent(user.id)
+            .filter(r => r.status === 'pending' || r.status === 'approved');
+          const overlaps = activeRequests.some(r => fromDate <= r.toDate && toDate >= r.fromDate);
+          if (overlaps) {
+            showToast('You already have a leave request covering some of these dates.');
+            return false;
+          }
+
           const requests = DB.getLeaveRequests();
           requests.push({
             id: DB.uid('lv'),

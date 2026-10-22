@@ -169,7 +169,7 @@
         <div class="field-row">
           <div class="field">
             <label>Date</label>
-            <input type="date" id="sessDate" value="${esc(dateVal)}">
+            <input type="date" id="sessDate" value="${esc(dateVal)}" max="${esc(todayISO())}">
           </div>
           <div class="field">
             <label>Time Slot</label>
@@ -290,10 +290,22 @@
       if (!date) { showToast('Please choose a date.'); return; }
 
       const sessions = DB.getSessions();
+
       if (mode === 'edit') {
         const s = sessions.find(s => s.id === session.id);
         s.date = date; s.slot = slot; s.attendance = Object.assign({}, attendance);
+        DB.saveSessions(sessions);
       } else {
+        // a subject should only have ONE session per date — without this
+        // check, clicking "New Session" and picking a date that already
+        // has a session created a second record for the same day, which
+        // double-counted that day in the student's attendance percentage
+        const duplicate = sessions.find(s => s.subjectId === subject.id && s.date === date);
+        if (duplicate) {
+          showToast('A session for this subject already exists on that date. Edit that one instead.');
+          location.hash = `#session/edit/${duplicate.id}`;
+          return;
+        }
         sessions.push({
           id: DB.uid('sess'),
           subjectId: subject.id,
@@ -302,8 +314,8 @@
           date, slot,
           attendance: Object.assign({}, attendance)
         });
+        DB.saveSessions(sessions);
       }
-      DB.saveSessions(sessions);
 
       let present = 0, absent = 0;
       students.forEach(st => attendance[st.id] === 'P' ? present++ : absent++);
