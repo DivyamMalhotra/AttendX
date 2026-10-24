@@ -1,9 +1,0 @@
-# Optional: a real MongoDB for local development ->  docker compose up -d
-services:
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    ports: ["27017:27017"]
-    volumes: ["attendx-mongo:/data/db"]
-volumes:
-  attendx-mongo:
