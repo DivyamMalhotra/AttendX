@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#F6F5F0">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<title>AttendX — Sign in</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="login-wrap">
+  <main class="login-card">
+    <div class="login-brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2" fill="#fff"/><rect x="13" y="3" width="8" height="8" rx="2" fill="#fff" opacity=".7"/><rect x="3" y="13" width="8" height="8" rx="2" fill="#fff" opacity=".7"/><rect x="13" y="13" width="8" height="8" rx="2" fill="#fff" opacity=".45"/></svg></span><span class="name">AttendX</span></div>
+    <div class="login-sub" id="collegeSub">Sign in to manage attendance</div>
+    <div class="login-error" id="loginError" role="alert"></div>
+    <div class="notice notice-success hidden" id="resetDone" role="status"><div>Your password was updated. Sign in with the new password.</div></div>
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@college.edu" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="signInBtn">Sign in</button>
+    </form>
+    <div style="text-align:center; margin-top:16px;">
+      <a class="btn-link" href="forgot-password.html">Forgot your password?</a><br>
+      <button type="button" id="changeCollegeBtn" class="btn-link" style="margin-top:8px">&larr; Not your college? Change it</button>
+    </div>
+  </main>
+</div>
+<script type="module" src="js/pages/auth/login.js"></script>
+</body>
+</html>
