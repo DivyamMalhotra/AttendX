@@ -1,0 +1,28 @@
+/* Tables sit on a white surface with hairline row separators; no cell borders, no heavy header. */
+.table-wrap{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); overflow-x:auto; max-width:100%; }
+table{ width:100%; border-collapse:collapse; }
+thead th{ text-align:left; font-size:var(--fs-xs); color:var(--stone); font-weight:var(--fw-semibold); padding:11px var(--sp-5); background:var(--surface-2); border-bottom:1px solid var(--line); white-space:nowrap; letter-spacing:.01em; }
+tbody td{ padding:12px var(--sp-5); border-bottom:1px solid var(--line); font-size:var(--fs-base); vertical-align:middle; }
+tbody td.wrap-cell{ min-width:200px; }
+tbody tr:last-child td{ border-bottom:none; }
+tbody tr{ transition:background var(--t-fast); }
+tbody tr:hover{ background:var(--surface-2); }
+td.right, th.right{ text-align:right; font-variant-numeric:tabular-nums; }
+.cell-strong{ font-weight:var(--fw-semibold); }
+.roll{ color:var(--stone); font-variant-numeric:tabular-nums; }
+.toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:var(--sp-4); }
+.pager{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 4px; color:var(--stone); font-size:var(--fs-sm); flex-wrap:wrap; }
+
+/* Phones: each row becomes a labelled entry; labels come from data-label (filled in by the router). */
+@media (max-width:640px){
+  .table-wrap{ background:none; border:none; overflow:visible; }
+  .table-wrap table, .table-wrap thead, .table-wrap tbody, .table-wrap tr, .table-wrap td{ display:block; width:100%; }
+  .table-wrap thead{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .table-wrap tbody tr{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:4px 14px; margin-bottom:10px; }
+  .table-wrap tbody td{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:8px 0; border-bottom:1px solid var(--line); text-align:right; }
+  .table-wrap tbody td:last-child{ border-bottom:none; }
+  .table-wrap tbody td::before{ content:attr(data-label); color:var(--stone); font-size:var(--fs-xs); font-weight:var(--fw-semibold); text-align:left; flex-shrink:0; max-width:45%; }
+  .table-wrap tbody td[data-label=""]::before, .table-wrap tbody td:not([data-label])::before{ display:none; }
+  .table-wrap tbody td[colspan]{ display:block; text-align:center; }
+  .table-wrap tbody tr:hover{ background:var(--surface); }
+}

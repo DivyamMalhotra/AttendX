@@ -1,0 +1,36 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Stylesheet bundle is current
+        run: node ../frontend/scripts/build-css.js --check
+      - name: Unit tests
+        run: node --test "tests/unit/**/*.test.js"
+      - name: Integration tests (in-memory MongoDB)
+        run: npm test
+      - name: Install Chromium for the browser tests
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run test:e2e
+        env:
+          CI: "true"
+          PW_CHANNEL: ""
+      - name: Dependency audit (production)
+        run: npm audit --omit=dev --audit-level=high
