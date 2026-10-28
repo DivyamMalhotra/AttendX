@@ -1,0 +1,62 @@
+/*
+ * AttendX design tokens: the only place colours, type, spacing, radii and motion are defined.
+ *
+ * Identity: a warm ivory canvas, white working surfaces, deep ink text and ONE accent (forest green) used for
+ * action and emphasis only. Status colours are muted and always travel with a word or icon, never colour alone.
+ * Display type is a serif (page titles and headline figures); everything else is a clean sans.
+ */
+:root{
+  /* canvas and surfaces */
+  --canvas: #F5F4EE;
+  --surface: #FFFFFF;
+  --surface-2: #FAF9F5;          /* quiet fill: table headers, hover rows, wells */
+  --line: #E3E4DB;               /* hairlines */
+  --line-strong: #D4D1C4;        /* input borders */
+
+  /* ink */
+  --ink: #17231F;
+  --ink-2: #4A5148;
+  --stone: #737A74;
+  --stone-2: #8E948B;
+
+  /* accent: used for actions, selection and key figures only */
+  --forest: #315A46;
+  --forest-ink: #264A38;         /* pressed / hover */
+  --sage: #DCE9DF;
+  --sage-2: #EDF3EE;
+
+  /* status */
+  --ok: #2F6B3F;     --ok-bg: #E6F0E7;
+  --warn: #8A5A0B;   --warn-bg: #F7EDD6;
+  --bad: #A2392A;    --bad-bg: #F8E6E1;
+  --info: #44627A;   --info-bg: #E6EDF2;
+
+  /* legacy names still used by older page code; they now resolve to the new identity */
+  --navy: var(--forest); --navy-dark: var(--forest-ink); --navy-active: var(--forest);
+  --page-bg: var(--canvas); --card-bg: var(--surface); --border: var(--line); --border-strong: var(--line-strong);
+  --text: var(--ink); --text-muted: var(--stone); --text-faint: var(--stone-2);
+  --blue: var(--info); --blue-bg: var(--info-bg); --green: var(--ok); --green-bg: var(--ok-bg);
+  --red: var(--bad); --red-bg: var(--bad-bg); --amber: var(--warn); --amber-bg: var(--warn-bg);
+
+  /* type */
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-xs: 12px; --fs-sm: 13px; --fs-base: 14.5px; --fs-md: 16px; --fs-lg: 18px; --fs-xl: 22px; --fs-2xl: 30px;
+  --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700;
+
+  /* space (4px base) */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 56px;
+  --page-pad: 40px;
+
+  /* shape + depth: flat by default, depth only where something floats */
+  --radius-sm: 6px; --radius: 10px; --radius-lg: 16px;
+  --shadow: none;
+  --shadow-pop: 0 10px 30px rgba(32,40,32,.14), 0 1px 3px rgba(32,40,32,.08);
+  --focus: 0 0 0 2px var(--canvas), 0 0 0 4px var(--forest);
+
+  /* motion */
+  --t-fast: .1s ease; --t-base: .16s ease;
+
+  /* layout */
+  --topbar-h: 60px; --wide-w: 1440px; --tap: 44px;
+}

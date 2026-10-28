@@ -1,0 +1,15 @@
+/* AttendX stylesheet entry point: tokens -> base -> layout -> components -> pages */
+@import url('base/tokens.css');
+@import url('base/base.css');
+@import url('layouts/shell.css');
+@import url('layouts/auth.css');
+@import url('components/buttons.css');
+@import url('components/cards.css');
+@import url('components/tables.css');
+@import url('components/badges.css');
+@import url('components/forms.css');
+@import url('components/feedback.css');
+@import url('pages/attendance.css');
+@import url('pages/fees.css');
+@import url('pages/timetable.css');
+@import url('pages/console.css');
