@@ -204,11 +204,13 @@ async function listMarkableSubjects({ actor, college, sessionsPerSubject = 8 }) 
   const filter = { college: college._id };
   if (actor.role === ROLES.TEACHER) filter.teacher = actor._id;
   const subjects = await Subject.find(filter).populate('section', 'name sem').sort({ name: 1 }).lean();
+  
+  const today = todayISO(college.settings.timezone);
 
   return Promise.all(subjects.map(async s => {
     const [studentCount, sessions] = await Promise.all([
       StudentProfile.countDocuments({ section: s.section._id, active: true }),
-      ClassSession.find({ subject: s._id }).sort({ date: -1, slot: -1 }).limit(sessionsPerSubject).lean()
+      ClassSession.find({ subject: s._id, date: { $lte: today } }).sort({ date: -1, slot: -1 }).limit(sessionsPerSubject).lean()
     ]);
     return {
       id: String(s._id), name: s.name, code: s.code, section: s.section, studentCount,
