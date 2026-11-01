@@ -346,6 +346,8 @@ td.right, th.right{ text-align:right; font-variant-numeric:tabular-nums; }
   .table-wrap tbody tr{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:4px 14px; margin-bottom:10px; }
   .table-wrap tbody td{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:8px 0; border-bottom:1px solid var(--line); text-align:right; }
   .table-wrap tbody td:last-child{ border-bottom:none; }
+  .table-wrap tbody td > *{ min-width:0; max-width:100%; overflow-wrap:anywhere; }
+  .table-wrap tbody td select, .table-wrap tbody td input{ max-width:100%; min-width:0; }
   .table-wrap tbody td::before{ content:attr(data-label); color:var(--stone); font-size:var(--fs-xs); font-weight:var(--fw-semibold); text-align:left; flex-shrink:0; max-width:45%; }
   .table-wrap tbody td[data-label=""]::before, .table-wrap tbody td:not([data-label])::before{ display:none; }
   .table-wrap tbody td[colspan]{ display:block; text-align:center; }
