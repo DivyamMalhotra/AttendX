@@ -44,7 +44,7 @@
 .ledger td{ padding:9px 0; border-bottom:1px solid var(--line); font-size:var(--fs-base); }
 .ledger td:last-child{ text-align:right; font-variant-numeric:tabular-nums; }
 .ledger tr.total td{ font-weight:var(--fw-semibold); border-bottom:none; border-top:1px solid var(--ink); }
-@media (max-width:1000px){ .stmt{ grid-template-columns:1fr; gap:var(--sp-6); } .stmt-balance .amt{ font-size:40px; } }
+@media (max-width:1000px){ .stmt{ grid-template-columns:minmax(0,1fr); gap:var(--sp-6); } .stmt > *{ min-width:0; } .stmt-balance .amt{ font-size:clamp(28px,9vw,40px); overflow-wrap:anywhere; } .stmt-balance .btn{ max-width:100%; white-space:normal; text-align:center; } }
 
 /* ----- directory (students / staff) ----- */
 .view-toggle{ display:inline-flex; border:1px solid var(--line-strong); border-radius:8px; overflow:hidden; background:var(--surface); }
