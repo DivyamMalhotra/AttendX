@@ -19,11 +19,12 @@ function temporaryPassword(length = 14) {
   }
 }
 
-async function createLogin(college, { name, role, email }) {
-  const password = temporaryPassword();
+// fixedPassword (development only, used by `npm run local`): every account gets that password and is not forced to change it
+async function createLogin(college, { name, role, email }, fixedPassword) {
+  const password = fixedPassword || temporaryPassword();
   const user = await models.User.create({
     college: college._id, role, name, email, passwordHash: await authService.hashPassword(password),
-    mustChangePassword: true, notificationPrefs: { email: false, sms: false }
+    mustChangePassword: !fixedPassword, notificationPrefs: { email: false, sms: false }
   });
   return { user, password };
 }
@@ -34,7 +35,7 @@ async function createLogin(college, { name, role, email }) {
  * Returns { summary, result, credentials[] } where credentials rows are [name, identifier, role, username, password, 'yes'].
  * With apply=false nothing is written (a dry run reports what would be created).
  */
-async function seedStudents({ college, text, apply = false, onError = () => {} }) {
+async function seedStudents({ college, text, apply = false, fixedPassword = null, onError = () => {} }) {
   const parsed = parseStudentList(text, { expectedGroup: GROUP });
   const summary = parsed.summary;
   const result = { studentsCreated: 0, studentsReused: 0, studentsFailed: 0, rolesCreated: 0, rolesReused: 0 };
@@ -51,7 +52,7 @@ async function seedStudents({ college, text, apply = false, onError = () => {} }
     let user;
     try {
       if (await models.User.exists({ college: college._id, email })) throw new Error(`a user with ${email} already exists without a student record; left untouched`);
-      const made = await createLogin(college, { name: row.name, role: ROLES.STUDENT, email });
+      const made = await createLogin(college, { name: row.name, role: ROLES.STUDENT, email }, fixedPassword);
       user = made.user;
       await models.StudentProfile.create({ college: college._id, user: user._id, section: section._id, rollNo: row.rollNo });
       await audit.record({ actor: null, collegeId: college._id, action: 'student.seeded', entityType: 'User', entityId: user._id, meta: { rollNo: row.rollNo, source: '5G3 list' } });
@@ -70,7 +71,7 @@ async function seedStudents({ college, text, apply = false, onError = () => {} }
     if (!apply) { result.rolesCreated += 1; continue; }
     const email = `${role.replace('_', '-')}@${college.code.toLowerCase()}.${LOGIN_DOMAIN}`;
     try {
-      const made = await createLogin(college, { name, role, email });
+      const made = await createLogin(college, { name, role, email }, fixedPassword);
       await audit.record({ actor: null, collegeId: college._id, action: 'role_account.seeded', entityType: 'User', entityId: made.user._id, meta: { role } });
       credentials.push([name, role, ROLE_TITLES[role], email, made.password, 'yes']);
       result.rolesCreated += 1;

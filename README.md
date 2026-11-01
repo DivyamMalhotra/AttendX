@@ -15,7 +15,7 @@ Needs Node.js 20+ and internet access for the first install (npm packages, and a
 ```bash
 git clone <repo-url> && cd Attendx
 npm run install:all      # installs the backend packages
-npm run local            # creates backend/.env, starts the database, creates demo data, starts the server
+npm run local            # creates backend/.env, starts the database, creates demo data ONLY if the database is empty, starts the server
 ```
 
 `npm run local` also loads the real student list `backend/data/5G3_Student_List.csv` (78 students of BE-CSE AIML Sem 5, group 5G3) into the demo college. **Keep this repository private**: the list holds student names and roll numbers. Sign in as the Administrator and open *Students* to see them. Their own logins get random temporary passwords, written only to a git-ignored file in `backend/credentials/`.
@@ -25,7 +25,7 @@ Then open http://localhost:3000 and sign in with:
 | | |
 |---|---|
 | College code | `CAMPUS26` |
-| Password (every demo account) | `Attendx@2026` |
+| Password (every demo account) | `Krish@2006` |
 | Administrator (college settings, backups, audit logs, all accounts) | `admin@campus26.edu` |
 | HOD | `hod.cse@campus26.edu` |
 | Teacher | `sameer.khanna@campus26.edu` |
@@ -37,6 +37,8 @@ Then open http://localhost:3000 and sign in with:
 This demo password is for local development only: `npm run local` refuses to run with `NODE_ENV=production`. Every teammate gets their own empty database on their own machine, so the demo college is created for them automatically the first time (it is never in Git because `.env` and `.mongodb-data/` are ignored). Change the password of any account you keep.
 
 If something fails, see **Troubleshooting** in [backend/README.md](backend/README.md). Already have MongoDB running on port 27017 (or `MONGODB_URI` pointing elsewhere)? `npm run local` uses it instead of starting its own.
+
+**Every later time, run the same single command** (`npm run local` or `npm run dev`). Your data stays in `.mongodb-data/` between runs, and seeding happens only when the database is empty, so you never seed again. Stop it with Ctrl+C.
 
 Manual alternative (three steps): `cd backend && npm install`, copy `.env.example` to `.env` and set `SESSION_SECRET` to a random 32+ character string, then `npm run dev:db` in one terminal and `npm run dev` in another.
 
