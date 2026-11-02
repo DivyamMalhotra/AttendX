@@ -8,6 +8,7 @@
     "dev": "npm --prefix backend run dev",
     "install:all": "npm --prefix backend install",
     "local": "npm --prefix backend run local",
+    "college:setup": "npm --prefix backend run college:setup",
     "dev:db": "npm --prefix backend run dev:db",
     "seed:campus": "npm --prefix backend run seed:campus",
     "test": "npm --prefix backend test",

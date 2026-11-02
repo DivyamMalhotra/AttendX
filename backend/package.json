@@ -14,6 +14,7 @@
     "test": "node --test --test-concurrency=1 \"tests/integration/**/*.test.js\"",
     "test:integration": "node --test --test-concurrency=1 \"tests/integration/**/*.test.js\"",
     "admin:create": "node scripts/create-admin.js",
+    "college:setup": "node scripts/setup-college.js",
     "migrate:roles": "node scripts/migrations/seven-roles.js",
     "seed:5g3": "node scripts/seed-5g3.js",
     "seed:demo": "node scripts/seed-demo.js",
