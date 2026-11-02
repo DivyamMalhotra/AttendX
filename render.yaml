@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: attendx
+    runtime: node
+    buildCommand: npm run install:all
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: APP_BASE_URL
+        sync: false
+      - key: PAYMENT_PROVIDER
+        value: none
+      - key: JOBS_ENABLED
+        value: "true"
