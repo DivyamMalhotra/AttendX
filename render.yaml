@@ -2,6 +2,7 @@ services:
   - type: web
     name: attendx
     runtime: node
+    plan: free
     buildCommand: npm run install:all
     startCommand: npm start
     healthCheckPath: /health
